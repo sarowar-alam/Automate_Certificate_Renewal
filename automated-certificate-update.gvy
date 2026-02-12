@@ -5,7 +5,7 @@ pipeline {
         choice(
             name: 'DOMAIN',
             choices: [
-                '*.my-certificate-name.net' 
+                '*.service-x.example.com' 
             ],
             description: 'Select Certificate Name Renew and Update in place ... '
         )
@@ -16,9 +16,9 @@ pipeline {
     AWS_REGION = "us-west-2"
     PFX_PASS = "your_pfx_password"
     JENKINS_PFX_PASS = "your_jenkins_pfx_password"
-    my-company-name_PROD_SERVER_IP = "192.168.1.5,192.168.1.6"
-    ZABBIX_PROD_SERVER_IP = "192.168.1.7"
-    JENKINS_LINUX_SERVER_IP = "192.168.1.8"
+    COMPANY_A_PROD_SERVER_IP = "10.0.1.10,10.0.1.11"
+    ZABBIX_PROD_SERVER_IP = "10.0.1.20"
+    JENKINS_LINUX_SERVER_IP = "10.0.1.30"
 
     CERTIFICATE_UPDATE_STATUS = false   
     
@@ -38,7 +38,7 @@ pipeline {
                 def subdomain = ""
 
                 switch (baseDomain) {
-                    case "my-certificate-name.net":
+                    case "service-x.example.com":
                         subdomain = "zabbix"
                         break                                               
                     default:
@@ -47,7 +47,7 @@ pipeline {
 
                 def finalDomain = "${subdomain}.${baseDomain}"
                 echo "Mapped Domain: ${finalDomain}"
-                def scriptPath = 'my-git/repo-name/with-path/certificate-update/ssl.ps1'
+                def scriptPath = 'git/repo-y/certificate-automation/ssl.ps1'
                 // Run PowerShell script and capture output
                 def output = bat(
                     script: """
@@ -91,8 +91,8 @@ pipeline {
                     // Map domain to instance ID
                     def instanceId = ''
                     switch(params.DOMAIN) {
-                        case '*.my-certificate-name.net':
-                            instanceId = "['i-3f8b71c9d4eaaf235', 'i-7a12de90b5ccfa842']"
+                        case '*.service-x.example.com':
+                            instanceId = "['i-1234567890abcdef0', 'i-0fedcba0987654321']"
                             break                            
                         default:
                             echo "No instance mapping found for domain: ${params.DOMAIN}"
@@ -102,11 +102,11 @@ pipeline {
                         echo "Using instance ID: ${instanceId}"
                         withCredentials([
                             [$class: 'UsernamePasswordMultiBinding',
-                                credentialsId: 'jenkins-aws-credentials-id',
+                                credentialsId: 'jenkins-aws-creds-id',
                                 usernameVariable: 'AWS_ACCESS_KEY',
                                 passwordVariable: 'AWS_SECRET_KEY']
                         ]) {
-                            def scriptPath = 'my-git/repo-name/with-path/certificate-update/start-mainline-rc.py'
+                            def scriptPath = 'git/repo-y/certificate-automation/start-mainline-rc.py'
                             // Run Python and capture exit code without failing Jenkins automatically
                             def exitCode = bat(
                                 script: """
@@ -146,13 +146,13 @@ pipeline {
                 {
                     withCredentials([
                     [$class: 'UsernamePasswordMultiBinding', 
-                    credentialsId: 'jenkins-aws-credentials-id', 
+                    credentialsId: 'jenkins-aws-creds-id', 
                     usernameVariable: 'AWS_KEY', 
                     passwordVariable: 'AWS_SECRET']
-                    ]) 
+                    ) 
                     {
                         def resultOutput = powershell (
-                            script: "powershell -NoProfile -ExecutionPolicy Bypass -File 'my-git/repo-name/with-path/certificate-update/backup-create-cert.ps1' -Domain '${params.DOMAIN}' -AccessKey '${AWS_KEY}' -SecretKey '${AWS_SECRET}' -PfxPass '${PFX_PASS}'",
+                            script: "powershell -NoProfile -ExecutionPolicy Bypass -File 'git/repo-y/certificate-automation/backup-create-cert.ps1' -Domain '${params.DOMAIN}' -AccessKey '${AWS_KEY}' -SecretKey '${AWS_SECRET}' -PfxPass '${PFX_PASS}'",
                             returnStdout: true
                         ).trim()
 
@@ -184,18 +184,18 @@ pipeline {
             }
         steps{
             script{
-                def domain = params.DOMAIN           // e.g., *.my-company-name-01.com
+                def domain = params.DOMAIN           // e.g., *.company-a-prod.example.com
                 def escapedDomain = domain.replace('*', '!')
                 def certPathGlob = "${env.LOCALAPPDATA}\\Posh-ACME\\LE_PROD\\*\\${escapedDomain}"
                 echo "Certificate path glob: ${certPathGlob}"
 
                 withCredentials([
                     [$class: 'UsernamePasswordMultiBinding',
-                        credentialsId: 'jenkins-aws-credentials-id',
+                        credentialsId: 'jenkins-aws-creds-id',
                         usernameVariable: 'AWS_ACCESS_KEY',
                         passwordVariable: 'AWS_SECRET_KEY']
                 ]) {
-                    def scriptPath = 'my-git/repo-name/with-path/certificate-update/update-aws-certificate.py'
+                    def scriptPath = 'git/repo-y/certificate-automation/update-aws-certificate.py'
                     // Run Python and capture exit code without failing Jenkins automatically
                     def exitCode = bat(
                         script: """
@@ -228,17 +228,17 @@ pipeline {
                 def subdomain = ""
 
                 switch (baseDomain) {
-                    case "my-certificate-name.net":
+                    case "service-x.example.com":
 
-                        def ipList = env.my-company-name_PROD_SERVER_IP.split(',')
+                        def ipList = env.COMPANY_A_PROD_SERVER_IP.split(',')
                         ipList.each { ip ->
                             echo "Deploying to IP: ${ip}"
 
-                            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jenkins-windows-remote-admin-id', 
+                            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jenkins-win-admin-id', 
                             usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                             {
                                 def result_host_update = powershell(returnStatus: true, script: """
-                                    & 'my-git/repo-name/with-path/certificate-update/update-iis-robust.ps1' -RemoteIP "${ip}" `
+                                    & 'git/repo-y/certificate-automation/update-iis-robust.ps1' -RemoteIP "${ip}" `
                                                         -Username "${USERNAME}" `
                                                         -Password "${PASSWORD}" `
                                                         -CertCN ${params.DOMAIN} `
@@ -252,7 +252,7 @@ pipeline {
                             }// End of With Credentials                               
                         }
 
-                        def SCRIPT_PATH = 'my-git/repo-name/with-path/certificate-update/update-jenkins-windows.ps1'
+                        def SCRIPT_PATH = 'git/repo-y/certificate-automation/update-jenkins-windows.ps1'
                     
                         try {
                             // Execute PowerShell with error handling
@@ -290,7 +290,7 @@ pipeline {
                         }
 
                         try {
-                            def scriptPath = 'my-git/repo-name/with-path/certificate-update/update-jenkins-linux.py'  // Windows path
+                            def scriptPath = 'git/repo-y/certificate-automation/update-jenkins-linux.py'  // Windows path
                             // Run Python and capture exit code without failing Jenkins automatically
                             def exitCode = bat(
                                 script: """
@@ -309,7 +309,7 @@ pipeline {
 
 
                         try {
-                            def scriptPath = 'my-git/repo-name/with-path/certificate-update/update-zabbix-certificate.py'  // Windows path
+                            def scriptPath = 'git/repo-y/certificate-automation/update-zabbix-certificate.py'  // Windows path
                             // Run Python and capture exit code without failing Jenkins automatically
                             def exitCode = bat(
                                 script: """
@@ -349,26 +349,26 @@ pipeline {
                 def subdomain = ""
 
                 switch (baseDomain) {
-                    case "my-certificate-name.net":
-                        def TO_LIST = "devops@my-company.com"
-                        def CC_LIST = "mscops@my-company.com; sarowar@my-company.com; sarowar@my-company.com"
+                    case "service-x.example.com":
+                        def TO_LIST = "devops@company-a.example.com"
+                        def CC_LIST = "ops-team@company-a.example.com; user-1@company-a.example.com; user-1@company-a.example.com"
                         def AWS_REGION = "us-east-1"
-                        def bucket_name = "marcombox-logs"
+                        def bucket_name = "company-a-logs"
                         def bucket_prefix = "certificates/"
 
                         try {
                             withCredentials([
                                 [$class: 'UsernamePasswordMultiBinding',
-                                credentialsId: 'f7921b08-4448-4862-9aec-75365b928acf',
+                                credentialsId: 'aws-creds-id-1',
                                 usernameVariable: 'AWS_KEY',
                                 passwordVariable: 'AWS_SECRET'], 
                         
                                 [$class: 'UsernamePasswordMultiBinding', 
-                                credentialsId: 'ac8c82cf-4f92-4903-86c6-8985cf7e009c', 
+                                credentialsId: 'aws-creds-id-2', 
                                 usernameVariable: 'AWS_KEY2', 
                                 passwordVariable: 'AWS_SECRET2']
                             ]) {
-                                def scriptPath = 'my-git/repo-name/with-path/certificate-update/send_certificate_email.py'
+                                def scriptPath = 'git/repo-y/certificate-automation/send_certificate_email.py'
                                 def command = "python.exe \"${scriptPath}\" \"${params.DOMAIN}\" \"${TO_LIST}\" \"${CC_LIST}\" \"%AWS_KEY%\" \"%AWS_SECRET%\" \"${AWS_REGION}\" \"%AWS_KEY2%\" \"%AWS_SECRET2%\" \"${bucket_name}\" \"${bucket_prefix}\"  "
 
                                 echo "[INFO] Running: ${command}"
@@ -420,13 +420,13 @@ failure {
         try {
             withCredentials([[
                 $class: 'UsernamePasswordMultiBinding',
-                credentialsId: 'f7921b08-4448-4862-9aec-75365b928acf',
+                credentialsId: 'aws-creds-id-1',
                 usernameVariable: 'AWS_ACCESS_KEY_ID',
                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
             ]]) {
                 // Define recipients
-                def toRecipients = "'mscops@my-company.com'"
-                def ccRecipients = "'karim@my-company.com', 'rahim@my-company.com'"
+                def toRecipients = "'ops-team@company-a.example.com'"
+                def ccRecipients = "'user-2@company-a.example.com', 'user-3@company-a.example.com'"
                 
                 // Get error message
                 def errorMsg = currentBuild.rawBuild.getLog(100).findAll { 
@@ -443,7 +443,7 @@ import os
 
 def send_email_SES():
     AWS_REGION = 'us-east-1'
-    SENDER_EMAIL = 'DevOps_Jankins_Automation <noreply@my-certificate-name.net>'
+    SENDER_EMAIL = 'DevOps_Jenkins_Automation <noreply@service-x.example.com>'
     TO_RECIPIENTS = [${toRecipients}]
     CC_RECIPIENTS = [${ccRecipients}]
     SUBJECT = 'FAILED: ${env.JOB_NAME.replace("'", "\\\\'")} #${env.BUILD_NUMBER}'

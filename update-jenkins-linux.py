@@ -19,7 +19,7 @@ def get_cert_files_path(cert_cn):
     Search for JKS certificate files matching the given Common Name pattern.
     
     Args:
-        cert_cn (str): Certificate Common Name (e.g., "*.my-company-name1.com")
+        cert_cn (str): Certificate Common Name (e.g., "*.company-a-prod.example.com")
     
     Returns:
         dict: Dictionary containing cert_dir and jks_path if found, None otherwise
@@ -172,12 +172,12 @@ def main():
     
     if len(sys.argv) < 3:
         logging.error("Usage: python script.py <CertificateCN> <RemoteIP> <PemPath>")
-        logging.error("Example: python script.py *.my-company-name1.com 192.168.1.100 C:\\keys\\mykey.pem")
+        logging.error("Example: python script.py *.company-a-prod.example.com 192.168.1.100 C:\\keys\\mykey.pem")
         sys.exit(1)
     
     cert_cn = sys.argv[1]
     remote_ip = sys.argv[2]
-    pem_path = r"C:\KEYS\AmazonOregon.pem"
+    pem_path = r"C:\KEYS\aws-region-1.pem"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     logging.info(f"Searching for certificate: {cert_cn}")

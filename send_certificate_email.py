@@ -58,7 +58,7 @@ def main(domain, to_list, cc_list, aws_key, aws_secret, region,
     )
     ses_client = session.client('ses')
 
-    from_email = 'DevOps Automated_Certificate <noreply@my-company-name.net>'
+    from_email = 'DevOps Automated_Certificate <noreply@company-a.example.com>'
     subject = f"Updated Certificate of {domain}"
     body_text = f"""Hello Team,
 

@@ -131,12 +131,12 @@ def main():
     
     if len(sys.argv) < 3:
         logging.error("Usage: python script.py <CertificateCN> <RemoteIP> <PemPath>")
-        logging.error("Example: python script.py *.my-company-name.net 192.168.1.100 C:\\keys\\mykey.pem")
+        logging.error("Example: python script.py *.company-a.example.com 192.168.1.100 C:\\keys\\mykey.pem")
         sys.exit(1)
     
     cert_cn = sys.argv[1]
     remote_ip = sys.argv[2]
-    pem_path = r"C:\KEYS\EUwest.pem"
+    pem_path = r"C:\KEYS\aws-region-2.pem"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     logging.info(f"Searching for certificate: {cert_cn}")
